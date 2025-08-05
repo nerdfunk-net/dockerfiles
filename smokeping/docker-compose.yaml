@@ -1,0 +1,33 @@
+---
+version: "2.1"
+services:
+  smokeping-master:
+    image: veritas-sot/smokeping-master:v2.8.2
+    container_name: smokeping-master
+    hostname: smokeping-master
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /Users/marc/Programming/network-automation/volumes/smokeping/master/config:/config
+      - /Users/marc/Programming/network-automation/volumes/smokeping/master/data:/data
+    ports:
+      - 8080:80
+    restart: unless-stopped
+  smokeping-slave:
+    image: veritas-sot/smokeping-slave:v2.8.2
+    container_name: smokeping-slave
+    hostname: slave
+    depends_on:
+      - "smokeping-master"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /Users/marc/Programming/network-automation/volumes/smokeping/slave/config:/config
+      - /Users/marc/Programming/network-automation/volumes/smokeping/slave/data:/data
+    ports:
+      - 8081:80
+    restart: unless-stopped

@@ -1,0 +1,86 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: always
+    command:
+      - "--log.level=DEBUG"
+      - "--log.filePath=/logs/traefik.log"
+      - "--api.insecure=true"
+      - "--accessLog=true"
+      - "--accessLog.filePath=/logs/access.log"
+      - "--accessLog.bufferingSize=100"
+      - "--accessLog.filters.statusCodes=204-299,400-499,500-599"
+      - "--api"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.https.http.tls.certResolver=letsencrypt"
+
+      # forward http to https
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      #
+      - "--entryPoints.web.forwardedHeaders.insecure=true"
+
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.letsencrypt.acme.email=your@mail.here"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--global.checkNewVersion=true"
+      - "--global.sendAnonymousUsage=false"
+
+    networks:
+      - frontend
+      - backend
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /opt/docker-volumes/traefik/letsencrypt/:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      traefik.enable: true
+
+      # Middleware Redirect
+      # To create user:password pair, it's possible to use this command:
+      # echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
+      traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
+      traefik.http.middlewares.auth.basicauth.users: __YOUR__PASSWORD__HERE__
+
+      # dashboard
+      traefik.http.routers.dashboard.entrypoints: websecure
+      traefik.http.routers.dashboard.rule: Host(`${TRAEFIK_URL}`)
+      traefik.http.routers.dashboard.service: api@internal
+      traefik.http.routers.dashboard.tls: true
+      traefik.http.routers.dashboard.tls.certresolver: letsencrypt
+      traefik.http.routers.dashboard.middlewares: auth
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    networks:
+      - backend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    labels:
+      traefik.enable: true
+      traefik.http.routers.myresolver.rule: Host(`__YOU_PORTAINER_URL_HERE__`)
+      traefik.http.routers.myresolver.entrypoints: websecure
+      traefik.http.routers.myresolver.tls.certresolver: letsencrypt
+      traefik.http.routers.myresolver.service: portainer_svc
+      traefik.http.services.portainer_svc.loadBalancer.server.port: 9000
+
+volumes:
+  portainer_data:
+
+networks:
+  backend:
+  frontend:

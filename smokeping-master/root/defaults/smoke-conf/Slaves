@@ -1,0 +1,7 @@
+*** Slaves ***
+secrets=/etc/smokeping/smokeping_secrets
+
+# rename slave if necessary; the hostnane must match the name of the slave
++slave
+display_name=another
+color=00ff00

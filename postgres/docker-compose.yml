@@ -1,0 +1,41 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=_your_username_
+      - POSTGRES_PASSWORD=_your_password_
+      - POSTGRES_DB=_your_database_
+    networks:
+      - backend
+    expose:
+      - 5432:5432
+    volumes: 
+      - _your_local_path_:/var/lib/postgresql/data
+  pgadmin:
+    container_name: pgadmin4
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    networks:
+      - backend
+    environment:
+      PGADMIN_DEFAULT_EMAIL: login@_your_mail_
+      PGADMIN_DEFAULT_PASSWORD: _your_password_
+    labels:
+      traefik.enable: true
+      traefik.http.routers.pgadmin.entrypoints: websecure
+      traefik.http.routers.pgadmin.rule: Host(`pgasmin.domain.tld`)
+      traefik.http.routers.pgadmin.tls: true
+      traefik.http.routers.pgadmin.tls.certresolver: letsencrypt
+      traefik.http.routers.pgadmin.service: pgadmin
+      traefik.http.services.pgadmin.loadbalancer.server.port: 80
+volumes:
+  db:
+    driver: local
+
+networks:
+  backend:
+    name: traefik-portainer_backend
+    external: true

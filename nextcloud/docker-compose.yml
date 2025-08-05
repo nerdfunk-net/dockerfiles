@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+
+  nextcloud:
+    image: nextcloud:26.0.7
+    container_name: nextcloud
+    hostname: nextcloud
+    restart: unless-stopped
+    networks:
+      - backend
+    environment:
+      - DEBUG_LEVEL=DEBUG
+      - OPCACHE_ENABLE=1                            # Requirements from Nextcloud Administration Manual
+      - OPCACHE_ENABLE_CLI=1                        # Requirements from Nextcloud Administration Manual
+      - OPCACHE_INTERNED_STRINGS_BUFFER=8           # Requirements from Nextcloud Administration Manual
+      - OPCACHE_MAX_ACCELERATED_FILES=10000         # Requirements from Nextcloud Administration Manual
+      - OPCACHE_ENABLE_MEMORY_CONSUMPTION=128       # Requirements from Nextcloud Administration Manual
+      - OPCACHE_SAVE_COMMENTS=1                     # Requirements from Nextcloud Administration Manual
+      - OPCACHE_REVALIDATE_FREQ=1                   # Requirements from Nextcloud Administration Manual
+      - PHP_FPM_PM=dynamic                          #
+      - PHP_FPM_PM_MAX_CHILDREN=120                 # PHP-FPM tunning
+      - PHP_FPM_PM_START_SERVER=12                  # https://docs.nextcloud.com/server/14/admin_manual/configuration_server/server_tuning.html
+      - PHP_FPM_PM_MIN_SPARE_SERVERS=6              #
+      - PHP_FPM_PM_MAX_SPARE_SERVERS=18             #
+      - CORE_FILE_UPLOADS=1                         #
+      - CORE_UPLOAD_TMP_DIR=/tmp/php/upload         #
+      - CORE_UPLOAD_MAX_FILESIZE=10G                #
+      - CORE_POST_MAX_SIZE=10G                      # More tunning
+      - CORE_OUTPUT_BUFFERING=off                   # https://www.techandme.se/increase-max-file-size/
+      - CORE_MAX_INPUT_TIME=7200                    #
+      - CORE_MAX_EXECUTION_TIME=7200                #
+      - CORE_MEMORY_LIMIT=1024M
+      - NEXTCLOUD_ADMIN_USER=admin                  # You can create the admin user here
+      - NEXTCLOUD_ADMIN_PASSWORD=WDaR^%znr6i93N2&XTV8
+      - NEXTCLOUD_TRUSTED_DOMAINS=_your_fqdn_hostname_
+      # database
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=gQbFzxMXtRf4A6siFi62
+    labels:
+      traefik.enable: true
+      traefik.http.routers.nextcloud.entrypoints: websecure
+      traefik.http.routers.nextcloud.rule: Host(`_your_fqdn_hostname_`)
+      traefik.http.routers.nextcloud.tls: true
+      traefik.http.routers.nextcloud.tls.certresolver: letsencrypt
+      traefik.http.routers.nextcloud.service: nextcloud
+      traefik.http.services.nextcloud.loadbalancer.server.port: 80
+      traefik.docker.network: backend
+      traefik.http.middlewares.nextcloud.redirectscheme.scheme: https
+      # traefik.http.routers.nextcloud.middlewares: nextcloud-dav,default@file
+      # traefik.http.middlewares.nextcloud-dav.replacepathregex.regex: ^/.well-known/ca(l|rd)dav
+      # traefik.http.middlewares.nextcloud-dav.replacepathregex.replacement: /remote.php/dav/
+
+    volumes:
+      - /opt/docker-volumes/nextcloud/html:/var/www/html
+      - /opt/docker-volumes/nextcloud/data:/var/www/html/data
+      - /opt/docker-volumes/nextcloud/tmp:/nextcloud
+      - /opt/docker-volumes/nextcloud/log:/var/log
+
+networks:
+  backend:
+    name: traefik-portainer_backend
+    external: true

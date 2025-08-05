@@ -1,0 +1,37 @@
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    container_name: mailserver
+    env_file:
+      - stack.env
+    # Provide the FQDN of your mail server here (Your DNS MX record should point to this value)
+    hostname: _your_fqdn_hostname_
+    restart: always
+    stop_grace_period: 1m
+    # Uncomment if using `ENABLE_FAIL2BAN=1`:
+    # cap_add:
+    #   - NET_ADMIN
+    ports:
+      - "25:25"    # SMTP  (explicit TLS => STARTTLS, Authentication is DISABLED => use port 465/587 instead)
+      - "143:143"  # IMAP4 (explicit TLS => STARTTLS)
+      - "465:465"  # ESMTP (implicit TLS)
+      - "587:587"  # ESMTP (explicit TLS => STARTTLS)
+      - "993:993"  # IMAP4 (implicit TLS)
+    volumes:
+      - /opt/docker-volumes/mailserver/mail-data/:/var/mail/
+      - /opt/docker-volumes/mailserver/mail-state/:/var/mail-state/
+      - /opt/docker-volumes/mailserver/mail-logs/:/var/log/mail/
+      - /opt/docker-volumes/mailserver/config/:/tmp/docker-mailserver/
+      - /opt/docker-volumes/traefik/letsencrypt/acme.json:/etc/letsencrypt/acme.json:ro
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      traefik.enable: true
+      traefik.http.routers.mailserver.entrypoints: websecure
+      traefik.http.routers.mailserver.rule: Host(`_your_hostname_`)
+      traefik.http.routers.mailserver.tls: true
+      traefik.http.routers.mailserver.tls.certresolver: letsencrypt
+      traefik.http.routers.mailserver.service: mailserver
+    healthcheck:
+      test: "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"
+      timeout: 3s
+      retries: 0
