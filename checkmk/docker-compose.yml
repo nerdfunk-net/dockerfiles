@@ -1,7 +1,7 @@
 ---
 services:
    checkmk:
-     image: checkmk/check-mk-raw:2.4.0p7
+     image: checkmk/check-mk-raw:2.4.0p10
      container_name: checkmk
      hostname: checkmk
      restart: "unless-stopped"
@@ -10,7 +10,7 @@ services:
        #- "514:514/udp"
        #- "514:514/tcp"
        #- "6557:6557/tcp"
-       - "9090:5000/tcp"
+       - "9090:9090/tcp"
        - "8000:8000"
      environment:
        - MAIL_RELAY_HOST=mailrelay.example.com
@@ -20,5 +20,11 @@ services:
      volumes:
        - /etc/localtime:/etc/localtime:ro
        - cmkvol:/omd/sites
+     networks:
+       - backend
 volumes:
   cmkvol:
+networks:
+  backend:
+    name: nautobot_backend
+    driver: bridge
