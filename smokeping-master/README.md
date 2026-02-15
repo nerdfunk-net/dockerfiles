@@ -1,1 +1,1 @@
-docker build -t veritas-sot/smokeping-master:v2.8.2 .
+docker build -t veritas-sot/smokeping-master:v2.9.0 .
